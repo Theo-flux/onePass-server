@@ -9,5 +9,6 @@ class Users(SQLModel, table=True):
     name: str = Field(...)
     email: EmailStr = Field(...)
     password: str = Field(...)
+    avatar: str | None = Field(...)
     created_at: datetime = Field(...)
     updated_at: datetime = Field(...)

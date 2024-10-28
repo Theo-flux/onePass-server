@@ -1,45 +1,70 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from enum import Enum
+from pydantic import BaseModel, field_validator
+from datetime import datetime
 from email_validator import validate_email, EmailNotValidError, EmailSyntaxError
 
 
 class RegisterModel(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str
 
     @field_validator("email")
     @classmethod
     def validate_email(cls, value):
         try:
-            validate_email(value)
+            validatedEmail = validate_email(value)
+            return validatedEmail.email
         except EmailNotValidError:
             raise EmailSyntaxError("Invalid Email format")
 
 
 class LoginModel(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
     @field_validator("email")
     @classmethod
     def validate_email(cls, value):
         try:
-            validate_email(value)
+            validatedEmail = validate_email(value)
+            return validatedEmail.email
         except EmailNotValidError:
             raise EmailSyntaxError("Invalid Email format")
 
 
 class ForgotPwdModel(BaseModel):
-    email: EmailStr
+    email: str
 
     @field_validator("email")
     @classmethod
     def validate_email(cls, value):
         try:
-            validate_email(value)
+            validatedEmail = validate_email(value)
+            return validatedEmail.email
         except EmailNotValidError:
             raise EmailSyntaxError("Invalid Email format")
 
 
 class ResetPwdModel(BaseModel):
     password: str
+
+
+class UserResponseModel(BaseModel):
+    id: int
+    name: str
+    username: str
+    email: str
+    avatar: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TokenModel(BaseModel):
+    access_token: str
+    refresh_token: str
+
+
+class TokenTypeModel(str, Enum):
+    ACCESS_TOKEN = "ACCESS_TOKEN"
+    REFRESH_TOKEN = "REFRESH_TOKEN"
