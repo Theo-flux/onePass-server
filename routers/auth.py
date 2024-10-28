@@ -121,7 +121,7 @@ async def reset_pwd(new_pwd: ResetPwdModel = Body(...), db: Session = Depends(ge
 
 
 @router.get("/refresh/{token}", response_model=TokenModel)
-async def refresh_token(token: str = Body(...), db: Session = Depends(get_db)):
+async def refresh_token(token: str, db: Session = Depends(get_db)):
     email = auth_handler.decode_token(token, TokenTypeModel.REFRESH_TOKEN)
 
     if email:
