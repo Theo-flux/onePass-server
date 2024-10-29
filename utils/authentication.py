@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from fastapi import Security, security, Depends, status
 from passlib.context import CryptContext
 from fastapi import HTTPException, Security
-from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer
-from jose import jwt
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import jwt, JWTError
 from sqlmodel import Session, select
 from utils.db import get_db
 from models.auth import TokenTypeModel, UserResponseModel
@@ -23,7 +23,7 @@ class Authentication:
     ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"))
     REFRESH_TOKEN_EXPIRE_MINUTES = int(environ.get("REFRESH_TOKEN_EXPIRE_MINUTES"))
 
-    oauth2_user_scheme = OAuth2PasswordBearer(tokenUrl="login")
+    auth_scheme = HTTPBearer()
 
     def generate_access_token(self, data: Dict[str, str]) -> str:
         payload = data.copy()
@@ -74,7 +74,7 @@ class Authentication:
                 raise credential_exception
             else:
                 raise HTTPException(status_code=401, detail="Signature has expired!")
-        except jwt.InvalidTokenError as e:
+        except JWTError:
             if credential_exception:
                 raise credential_exception
             else:
@@ -111,15 +111,22 @@ class Authentication:
         return self.decode_token(auth.credentials, TokenTypeModel.ACCESS_TOKEN)
 
     def get_me(
-        self, token: str = Depends(oauth2_user_scheme), db: Session = Depends(get_db)
+        self,
+        token: HTTPAuthorizationCredentials = Depends(auth_scheme),
+        db: Session = Depends(get_db),
     ) -> UserResponseModel:
+        print("token: ", token)
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="unauthorized!",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        user_id = self.decode_token(token, credential_exception=credentials_exception)
-        statement = select(Users).where(Users.id == user_id)
-        result = db.exec(statement=statement)
+        user_email = self.decode_token(
+            token=token.credentials,
+            token_type=TokenTypeModel.ACCESS_TOKEN,
+            credential_exception=credentials_exception,
+        )
+        statement = select(Users).where(Users.email == user_email)
+        result = db.exec(statement=statement).one_or_none()
 
         return result

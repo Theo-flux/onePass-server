@@ -7,9 +7,9 @@ from models.auth import (
     RegisterModel,
     ForgotPwdModel,
     ResetPwdModel,
-    LoginModel,
     TokenTypeModel,
     UserResponseModel,
+    LoginModel,
 )
 from utils.db import get_db
 from utils.authentication import Authentication
@@ -27,8 +27,8 @@ async def me(user: UserResponseModel = Depends(auth_handler.get_me)):
     return user
 
 
-@router.post("/login", status_code=status.HTTP_200_OK)
-async def login(user_cred: LoginModel = Body(...), db: Session = Depends(get_db)):
+@router.post("/login")
+async def login(user_cred: LoginModel, db: Session = Depends(get_db)):
     """
     user login endpoint function.
     """
@@ -39,11 +39,17 @@ async def login(user_cred: LoginModel = Body(...), db: Session = Depends(get_db)
     if result:
         if auth_handler.verify_pwd(user_cred.password, result.password):
             access_token = auth_handler.generate_access_token({"email": result.email})
-            refresh_token = auth_handler.generate_access_token({"email": result.email})
+            refresh_token = auth_handler.generate_refresh_token({"email": result.email})
+
+            content: TokenModel = {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer",
+            }
 
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
-                content={"access_token": access_token, "refresh_token": refresh_token},
+                content=content,
             )
 
         raise HTTPException(
