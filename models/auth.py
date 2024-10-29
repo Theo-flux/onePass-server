@@ -72,3 +72,4 @@ class TokenModel(BaseModel):
 class TokenTypeModel(str, Enum):
     ACCESS_TOKEN = "ACCESS_TOKEN"
     REFRESH_TOKEN = "REFRESH_TOKEN"
+    EMAIL_VERIFICATION_TOKEN = "EMAIL_VERIFICATION_TOKEN"

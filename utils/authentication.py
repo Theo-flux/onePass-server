@@ -16,62 +16,48 @@ load_dotenv()
 
 
 class Authentication:
-    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     ACCESS_TOKEN_SECRET_KEY = environ.get("ACCESS_TOKEN_SECRET_KEY")
     REFRESH_TOKEN_SECRET_KEY = environ.get("REFRESH_TOKEN_SECRET_KEY")
-    ALGORITHM = environ.get("ALGORITHM")
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"))
-    REFRESH_TOKEN_EXPIRE_MINUTES = int(environ.get("REFRESH_TOKEN_EXPIRE_MINUTES"))
+    EMAIL_VERIFICATION_TOKEN_SECRET_KEY = environ.get(
+        "EMAIL_VERIFICATION_TOKEN_SECRET_KEY"
+    )
 
+    ALGORITHM = environ.get("ALGORITHM")
+
+    ACCESS_TOKEN_EXP_MINUTES = int(environ.get("ACCESS_TOKEN_EXP_MINUTES"))
+    REFRESH_TOKEN_EXP_MINUTES = int(environ.get("REFRESH_TOKEN_EXP_MINUTES"))
+    EMAIL_VERIFICATION_EXP_MINUTES = int(environ.get("EMAIL_VERIFICATION_EXP_MINUTES"))
+
+    pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     auth_scheme = HTTPBearer()
 
-    def generate_access_token(self, data: Dict[str, str]) -> str:
-        """
-        generate access token
-
-        Args:
-            data (Dict[str, str]): _description_
-
-        Returns:
-            str: _description_
-        """
+    def generate_token(self, token_type: TokenTypeModel, data: Dict[str, str]) -> str:
         payload = data.copy()
         curr_date = datetime.now()
+        minutes = 0
+        token = ""
+
+        if token_type == TokenTypeModel.ACCESS_TOKEN:
+            minutes = self.ACCESS_TOKEN_EXP_MINUTES
+        elif token_type == TokenTypeModel.REFRESH_TOKEN:
+            minutes = self.REFRESH_TOKEN_EXP_MINUTES
+        elif token_type == TokenTypeModel.EMAIL_VERIFICATION_TOKEN:
+            minutes = self.EMAIL_VERIFICATION_EXP_MINUTES
+
         payload.update(
-            {
-                "exp": curr_date + timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES),
-                "iat": curr_date,
-            }
+            {"exp": curr_date + timedelta(minutes=minutes), "iat": curr_date}
         )
 
-        token: str = jwt.encode(payload, self.ACCESS_TOKEN_SECRET_KEY, self.ALGORITHM)
+        if token_type == TokenTypeModel.ACCESS_TOKEN:
+            token = jwt.encode(payload, self.ACCESS_TOKEN_SECRET_KEY, self.ALGORITHM)
+        elif token_type == TokenTypeModel.REFRESH_TOKEN:
+            token = jwt.encode(payload, self.REFRESH_TOKEN_SECRET_KEY, self.ALGORITHM)
+        elif token_type == TokenTypeModel.EMAIL_VERIFICATION_TOKEN:
+            token = jwt.encode(
+                payload, self.EMAIL_VERIFICATION_TOKEN_SECRET_KEY, self.ALGORITHM
+            )
 
         return token
-
-    def generate_refresh_token(self, data: Dict[str, str]) -> str:
-        """
-        generate refresh token
-
-        Args:
-            data (Dict[str, str]): _description_
-
-        Returns:
-            str: _description_
-        """
-        payload = data.copy()
-        curr_date = datetime.now()
-        payload.update(
-            {
-                "exp": curr_date + timedelta(minutes=self.REFRESH_TOKEN_EXPIRE_MINUTES),
-                "iat": curr_date,
-            }
-        )
-
-        refresh_token: str = jwt.encode(
-            payload, self.REFRESH_TOKEN_SECRET_KEY, self.ALGORITHM
-        )
-
-        return refresh_token
 
     def decode_token(
         self,

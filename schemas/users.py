@@ -12,3 +12,4 @@ class Users(SQLModel, table=True):
     avatar: str | None = Field(default="")
     created_at: datetime = Field(...)
     updated_at: datetime = Field(...)
+    is_verified: bool = Field(default=False)

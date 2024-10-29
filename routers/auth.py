@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Body, status, HTTPException
+from fastapi import APIRouter, Depends, Body, status, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from datetime import datetime
@@ -29,8 +29,13 @@ def get_tokens(email: str) -> TokenModel:
     Returns:
         TokenModel: _description_
     """
-    access_token = auth_handler.generate_access_token({"email": email})
-    refresh_token = auth_handler.generate_refresh_token({"email": email})
+    access_token = auth_handler.generate_token(
+        TokenTypeModel.ACCESS_TOKEN,
+        {"email": email},
+    )
+    refresh_token = auth_handler.generate_token(
+        TokenTypeModel.REFRESH_TOKEN, {"email": email}
+    )
 
     content: TokenModel = {
         "access_token": access_token,
@@ -59,14 +64,20 @@ async def login(user_cred: LoginModel, db: Session = Depends(get_db)):
     result = db.exec(statement=statement).one_or_none()
 
     if result:
-        if auth_handler.verify_pwd(user_cred.password, result.password):
-            token = get_tokens(result.email)
+        if result.is_verified:
+            if auth_handler.verify_pwd(user_cred.password, result.password):
+                token = get_tokens(result.email)
 
-            return token
+                return token
+
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password!",
+            )
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password!",
+            detail="Email has not been verified yet.",
         )
 
     raise HTTPException(
@@ -127,7 +138,6 @@ async def forgot_pwd(f_pwd: ForgotPwdModel = Body(...), db: Session = Depends(ge
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Invalid email address!",
     )
-    pass
 
 
 @router.post("/reset_pwd/{reset_token}")
@@ -157,3 +167,11 @@ async def refresh_token(token: str, db: Session = Depends(get_db)):
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token!"
     )
+
+
+@router.get("/verify", status_code=status.HTTP_200_OK)
+async def acct_verification(
+    token: str = Query(description="email token verification"),
+    db: Session = Depends(get_db),
+):
+    pass
