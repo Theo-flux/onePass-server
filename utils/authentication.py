@@ -26,6 +26,15 @@ class Authentication:
     auth_scheme = HTTPBearer()
 
     def generate_access_token(self, data: Dict[str, str]) -> str:
+        """
+        generate access token
+
+        Args:
+            data (Dict[str, str]): _description_
+
+        Returns:
+            str: _description_
+        """
         payload = data.copy()
         curr_date = datetime.now()
         payload.update(
@@ -39,7 +48,16 @@ class Authentication:
 
         return token
 
-    def generate_refresh_token(self, data: Dict[str, str]):
+    def generate_refresh_token(self, data: Dict[str, str]) -> str:
+        """
+        generate refresh token
+
+        Args:
+            data (Dict[str, str]): _description_
+
+        Returns:
+            str: _description_
+        """
         payload = data.copy()
         curr_date = datetime.now()
         payload.update(
@@ -61,6 +79,23 @@ class Authentication:
         token_type: TokenTypeModel,
         credential_exception: HTTPException | None,
     ) -> str:
+        """
+        function to decode jwt token,
+
+        Args:
+            token (str): jwt token
+            token_type (TokenTypeModel): access token or refresh token
+            credential_exception (HTTPException | None): callback to raise exception
+
+        Raises:
+            credential_exception: _description_
+            HTTPException: _description_
+            credential_exception: _description_
+            HTTPException: _description_
+
+        Returns:
+            str: _description_
+        """
         try:
             key = (
                 self.ACCESS_TOKEN_SECRET_KEY
@@ -107,15 +142,21 @@ class Authentication:
         """
         return self.pwd_ctx.verify(secret=plain_pwd, hash=hashed_pwd)
 
-    def auth_wrapper(self, auth: HTTPAuthorizationCredentials = Security(security)):
-        return self.decode_token(auth.credentials, TokenTypeModel.ACCESS_TOKEN)
-
     def get_me(
         self,
         token: HTTPAuthorizationCredentials = Depends(auth_scheme),
         db: Session = Depends(get_db),
     ) -> UserResponseModel:
-        print("token: ", token)
+        """
+        get logged in user.
+
+        Args:
+            token (HTTPAuthorizationCredentials, optional): _description_. Defaults to Depends(auth_scheme).
+            db (Session, optional): _description_. Defaults to Depends(get_db).
+
+        Returns:
+            UserResponseModel: _description_
+        """
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="unauthorized!",

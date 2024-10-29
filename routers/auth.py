@@ -19,6 +19,28 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 auth_handler = Authentication()
 
 
+def get_tokens(email: str) -> TokenModel:
+    """
+    generate access, refren and token type.
+
+    Args:
+        email (str): _description_
+
+    Returns:
+        TokenModel: _description_
+    """
+    access_token = auth_handler.generate_access_token({"email": email})
+    refresh_token = auth_handler.generate_refresh_token({"email": email})
+
+    content: TokenModel = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
+    return content
+
+
 @router.get("/me")
 async def me(user: UserResponseModel = Depends(auth_handler.get_me)):
     """
@@ -27,7 +49,7 @@ async def me(user: UserResponseModel = Depends(auth_handler.get_me)):
     return user
 
 
-@router.post("/login")
+@router.post("/login", status_code=status.HTTP_200_OK, response_model=TokenModel)
 async def login(user_cred: LoginModel, db: Session = Depends(get_db)):
     """
     user login endpoint function.
@@ -38,19 +60,9 @@ async def login(user_cred: LoginModel, db: Session = Depends(get_db)):
 
     if result:
         if auth_handler.verify_pwd(user_cred.password, result.password):
-            access_token = auth_handler.generate_access_token({"email": result.email})
-            refresh_token = auth_handler.generate_refresh_token({"email": result.email})
+            token = get_tokens(result.email)
 
-            content: TokenModel = {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "token_type": "bearer",
-            }
-
-            return JSONResponse(
-                status_code=status.HTTP_200_OK,
-                content=content,
-            )
+            return token
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -126,22 +138,21 @@ async def reset_pwd(new_pwd: ResetPwdModel = Body(...), db: Session = Depends(ge
     pass
 
 
-@router.get("/refresh/{token}", response_model=TokenModel)
+@router.get(
+    "/refresh/{token}", status_code=status.HTTP_200_OK, response_model=TokenModel
+)
 async def refresh_token(token: str, db: Session = Depends(get_db)):
-    email = auth_handler.decode_token(token, TokenTypeModel.REFRESH_TOKEN)
+    email = auth_handler.decode_token(
+        token=token, token_type=TokenTypeModel.REFRESH_TOKEN, credential_exception=None
+    )
 
     if email:
         statement = select(Users).where(Users.email == email)
         result = db.exec(statement=statement).one_or_none()
 
         if result:
-            access_token = auth_handler.generate_access_token({"email": email})
-            refresh_token = auth_handler.generate_refresh_token({"email": email})
-
-            return JSONResponse(
-                status_code=status.HTTP_200_OK,
-                content={"access_token": access_token, "refresh_token": refresh_token},
-            )
+            token = get_tokens(result.email)
+            return token
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token!"
