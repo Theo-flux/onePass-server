@@ -2,12 +2,13 @@ from os import environ
 from dotenv import load_dotenv
 from typing import Dict
 from datetime import datetime, timedelta
-from fastapi import Security, security, Depends, status
+from fastapi import Depends, status
 from passlib.context import CryptContext
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt, JWTError
 from sqlmodel import Session, select
+from config.env import OnepassEnvs
 from utils.db import get_db
 from models.auth import TokenTypeModel, UserResponseModel
 from schemas import Users
@@ -16,17 +17,17 @@ load_dotenv()
 
 
 class Authentication:
-    ACCESS_TOKEN_SECRET_KEY = environ.get("ACCESS_TOKEN_SECRET_KEY")
-    REFRESH_TOKEN_SECRET_KEY = environ.get("REFRESH_TOKEN_SECRET_KEY")
-    EMAIL_VERIFICATION_TOKEN_SECRET_KEY = environ.get(
+    ACCESS_TOKEN_SECRET_KEY = OnepassEnvs.get("ACCESS_TOKEN_SECRET_KEY")
+    REFRESH_TOKEN_SECRET_KEY = OnepassEnvs.get("REFRESH_TOKEN_SECRET_KEY")
+    EMAIL_VERIFICATION_TOKEN_SECRET_KEY = OnepassEnvs.get(
         "EMAIL_VERIFICATION_TOKEN_SECRET_KEY"
     )
 
-    ALGORITHM = environ.get("ALGORITHM")
+    ALGORITHM = OnepassEnvs.get("ALGORITHM")
 
-    ACCESS_TOKEN_EXP_MINUTES = int(environ.get("ACCESS_TOKEN_EXP_MINUTES"))
-    REFRESH_TOKEN_EXP_MINUTES = int(environ.get("REFRESH_TOKEN_EXP_MINUTES"))
-    EMAIL_VERIFICATION_EXP_MINUTES = int(environ.get("EMAIL_VERIFICATION_EXP_MINUTES"))
+    ACCESS_TOKEN_EXP_MINUTES = OnepassEnvs.get("ACCESS_TOKEN_EXP_MINUTES")
+    REFRESH_TOKEN_EXP_MINUTES = OnepassEnvs.get("REFRESH_TOKEN_EXP_MINUTES")
+    EMAIL_VERIFICATION_EXP_MINUTES = OnepassEnvs.get("EMAIL_VERIFICATION_EXP_MINUTES")
 
     pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     auth_scheme = HTTPBearer()

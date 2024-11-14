@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html class="no-js" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8">
+    <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1"><![endif]-->
+    <meta name="description" content="Plan your events from the comfort of your home, right from your mobile phone or computer">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0">
+    <meta name="Content-Type" content="text/html; charset=UTF-8">
+    <title>{% block title %}onepass{% endblock %}</title>
+    <style type="text/css">
+        /* Include styles from styles.css */
+    </style>
+</head>
+<body>
+    <center class="wrapper">
+        <table class="main" width="100%">
+            <!-- Logo Section -->
+            <tr>
+                <td>
+                    {% include 'header.html' %}
+                </td>
+            </tr>
+            
+            <!-- Content Section -->
+            <tr>
+                <td>
+                  {% block content %}{% endblock %}
+                </td>
+            </tr>
+
+            <!-- Signature Section -->
+            <tr>
+                <td>
+                    {% include 'signature.html' %}
+                </td>
+            </tr>
+
+            <!-- Footer Section -->
+            <tr>
+              <td>
+                {% include 'footer.html' %}
+              </td>
+            </tr>
+        </table>
+    </center>
+</body>
+</html>

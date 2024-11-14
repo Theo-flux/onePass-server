@@ -1,4 +1,13 @@
-from fastapi import APIRouter, Depends, Body, status, HTTPException, Query
+import httpx
+from fastapi import (
+    APIRouter,
+    Depends,
+    Body,
+    status,
+    HTTPException,
+    Query,
+    BackgroundTasks,
+)
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from datetime import datetime
@@ -11,8 +20,12 @@ from models.auth import (
     UserResponseModel,
     LoginModel,
 )
+
+from models.emails import EmailTypes, EmailModel
 from utils.db import get_db
 from utils.authentication import Authentication
+
+from utils.mail import send_email_with_template
 from schemas import Users
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -87,7 +100,10 @@ async def login(user_cred: LoginModel, db: Session = Depends(get_db)):
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(user: RegisterModel = Body(...), db: Session = Depends(get_db)):
+async def register(
+    user: RegisterModel = Body(...),
+    db: Session = Depends(get_db),
+):
     """
     register user endpoint function.
     """
@@ -111,12 +127,30 @@ async def register(user: RegisterModel = Body(...), db: Session = Depends(get_db
     )
 
     db.add(new_user)
-    db.commit()
-    db.close()
 
-    return JSONResponse(
-        status_code=status.HTTP_201_CREATED, content={"message": "user created!"}
+    # trigger email verification
+    email_data = EmailModel(
+        subject=EmailTypes.REGISTRATION.subject,
+        email_to=[user.email],
+        template_body={"name": user.name},
+        template_name=EmailTypes.REGISTRATION.template,
     )
+
+    try:
+        db.commit()
+        # TODO: Call the emailbackground endpoint here.
+        async with httpx.AsyncClient() as client:
+            await client.post("http://localhost:8000/emailbackground", json=email_data)
+        return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": "A link has been sent to your mail for verification."})
+    except Exception as e:
+        print(e)
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to complete registration at this time. Please try again later.",
+        ) from e
+    finally:
+        db.close()
 
 
 @router.post("/forgot_pwd", status_code=status.HTTP_200_OK)
@@ -138,6 +172,16 @@ async def forgot_pwd(f_pwd: ForgotPwdModel = Body(...), db: Session = Depends(ge
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Invalid email address!",
     )
+
+
+@router.post("/emailbackground")
+async def send_in_background(
+    background_tasks: BackgroundTasks, email_data: EmailModel
+) -> JSONResponse:
+
+    background_tasks.add_task(send_email_with_template(email_data))
+
+    return JSONResponse(status_code=200, content={"message": "email has been sent"})
 
 
 @router.post("/reset_pwd/{reset_token}")
@@ -175,3 +219,27 @@ async def acct_verification(
     db: Session = Depends(get_db),
 ):
     pass
+
+
+@router.get("/resend_verify")
+async def resend_verify(
+    email: str = Query(description="email to resend verification."),
+    db: Session = Depends(get_db),
+):
+    statement = select(Users).where(Users.email == email.lower())
+    result = db.exec(statement=statement).one_or_none()
+
+    if result:
+        if result.is_verified:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={"message": "Email already verified"},
+            )
+        else:
+            # resend the link to their mail.
+            pass
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"User with email, {email} doesn't exist in our database.",
+    )
