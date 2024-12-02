@@ -21,8 +21,6 @@ conf = ConnectionConfig(
     TEMPLATE_FOLDER=Path(__file__).parent.parent / "templates",
 )
 
-print(conf)
-
 
 async def send_email_with_template(arg: EmailModel):
     """_summary_

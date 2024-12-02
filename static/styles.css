@@ -1,0 +1,141 @@
+body {
+    margin: 0;
+    background-color: #cccccc;
+  }
+  table {
+    border-spacing: 0;
+  }
+  td {
+    padding: 0;
+  }
+  img {
+    border: 0;
+  }
+  p {
+    font-family: Inter, sans-serif;
+  }
+  h1,
+  h2 {
+    font-family: HafferXH, sans-serif;
+  }
+  h1 {
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 48px;
+  }
+  h2 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 48px;
+  }
+  button {
+    font-family: Inter, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+    border: 0;
+    background-color: #e83289;
+    color: white;
+    cursor: pointer;
+    width: 260px;
+    height: 56px;
+    border-radius: 8px;
+  }
+  .button {
+    font-family: Inter, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+    border: 0;
+    padding: 20px 100px;
+    background-color: #e83289;
+    color: white;
+    cursor: pointer;
+    width: 260px;
+    height: 56px;
+    border-radius: 8px;
+    margin-top: 60px;
+  }
+  .link {
+    background-color: #fde892;
+  }
+  .link2 {
+    text-decoration: underline;
+    color: rgb(63, 63, 248);
+  }
+  .wrapper {
+    width: 100%;
+    max-width: 780px;
+    table-layout: fixed;
+    background-color: #f4f4f4;
+    padding-bottom: 40px;
+    margin: auto;
+  }
+  .main {
+    background-color: #f4f4f4;
+    width: 100%;
+    margin: 0;
+    max-width: 604px;
+    border-spacing: 0;
+    font-family: sans-serif;
+    color: #232323;
+  }
+  .social-media-container {
+    width: 100%;
+    max-width: 780px;
+    background-color: white/90;
+    margin: 0;
+    padding: 0;
+    border-spacing: 0;
+    font-family: sans-serif;
+    color: #232323;
+  }
+  .gb {
+    background-color: rgb(255, 166, 0);
+    height: 80px;
+  }
+  .resetbutton {
+    font-family: Inter, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+    border: 0;
+    background-color: #e83289;
+    color: white;
+    cursor: pointer;
+    width: 260px;
+    height: 56px;
+    border-radius: 8px;
+    padding: 20px 80px;
+  }
+  
+  .header {
+    background-color: #ffffff;
+    height: 150px;
+    margin-top: 52px;
+    margin-bottom: 52px;
+  }
+  .ideas {
+    color: rgb(168, 5, 5);
+    width: 100%;
+    font-size: large;
+    word-spacing: 5px;
+  }
+  img {
+    width: 30px;
+    height: 25px;
+  }
+  
+  @font-face {
+    font-family: 'HafferXH';
+    src: url('https://goldnlilies-email-app.vercel.app/_get/fonts/HafferXH-SemiBold.woff2')
+        format('woff2'),
+      url('https://goldnlilies-email-app.vercel.app/_get/fonts/HafferXH-SemiBold.woff') format('woff');
+    font-style: normal;
+    font-weight: 600;
+    font-display: block;
+  }
+
+  a, a:hover, a:visited, a:link, a:active {
+    color: #e83289;
+  }

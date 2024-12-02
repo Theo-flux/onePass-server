@@ -84,11 +84,16 @@ class Authentication:
             str: _description_
         """
         try:
-            key = (
-                self.ACCESS_TOKEN_SECRET_KEY
-                if token_type == TokenTypeModel.ACCESS_TOKEN
-                else self.REFRESH_TOKEN_SECRET_KEY
-            )
+
+            key = ""
+
+            if token_type == TokenTypeModel.ACCESS_TOKEN:
+                key = self.ACCESS_TOKEN_SECRET_KEY
+            elif token_type == TokenTypeModel.REFRESH_TOKEN:
+                key = self.REFRESH_TOKEN_SECRET_KEY
+            elif token_type == TokenTypeModel.EMAIL_VERIFICATION_TOKEN:
+                key = self.EMAIL_VERIFICATION_TOKEN_SECRET_KEY
+
             payload = jwt.decode(token, key=key, algorithms=[self.ALGORITHM])
             return payload["email"]
         except jwt.ExpiredSignatureError:

@@ -1,4 +1,3 @@
-import httpx
 from fastapi import (
     APIRouter,
     Depends,
@@ -6,7 +5,6 @@ from fastapi import (
     status,
     HTTPException,
     Query,
-    BackgroundTasks,
 )
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
@@ -129,21 +127,26 @@ async def register(
     db.add(new_user)
 
     # trigger email verification
+    verification_token = auth_handler.generate_token(
+        TokenTypeModel.EMAIL_VERIFICATION_TOKEN, {"email": user.email}
+    )
+    link = f"localhost:8000/verify/{verification_token}"
     email_data = EmailModel(
         subject=EmailTypes.REGISTRATION.subject,
         email_to=[user.email],
-        template_body={"name": user.name},
+        template_body={"name": user.name, "link": link},
         template_name=EmailTypes.REGISTRATION.template,
     )
 
     try:
-        db.commit()
         # TODO: Call the emailbackground endpoint here.
-        async with httpx.AsyncClient() as client:
-            await client.post("http://localhost:8000/emailbackground", json=email_data)
-        return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": "A link has been sent to your mail for verification."})
+        await send_email_with_template(email_data)
+        db.commit()
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content={"message": "A link has been sent to your mail for verification."},
+        )
     except Exception as e:
-        print(e)
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -172,16 +175,6 @@ async def forgot_pwd(f_pwd: ForgotPwdModel = Body(...), db: Session = Depends(ge
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Invalid email address!",
     )
-
-
-@router.post("/emailbackground")
-async def send_in_background(
-    background_tasks: BackgroundTasks, email_data: EmailModel
-) -> JSONResponse:
-
-    background_tasks.add_task(send_email_with_template(email_data))
-
-    return JSONResponse(status_code=200, content={"message": "email has been sent"})
 
 
 @router.post("/reset_pwd/{reset_token}")
@@ -213,12 +206,17 @@ async def refresh_token(token: str, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/verify", status_code=status.HTTP_200_OK)
+@router.get("/verify/{token}", status_code=status.HTTP_200_OK)
 async def acct_verification(
-    token: str = Query(description="email token verification"),
+    token: str,
     db: Session = Depends(get_db),
 ):
     pass
+
+
+@router.get("/verify/{link}")
+async def read_item(link: str):
+    return {"message": f"Verifying link: {link}"}
 
 
 @router.get("/resend_verify")
