@@ -5,6 +5,7 @@ from fastapi import (
     status,
     HTTPException,
     Query,
+    BackgroundTasks,
 )
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
@@ -23,8 +24,9 @@ from models.emails import EmailTypes, EmailModel
 from utils.db import get_db
 from utils.authentication import Authentication
 
-from utils.mail import send_email_with_template
+from utils.mail import send_mail_in_background
 from schemas import Users
+from config.env import OnepassEnvs
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 auth_handler = Authentication()
@@ -98,12 +100,13 @@ async def login(user_cred: LoginModel, db: Session = Depends(get_db)):
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(
+def register(
+    background_tasks: BackgroundTasks,
     user: RegisterModel = Body(...),
     db: Session = Depends(get_db),
 ):
     """
-    register user endpoint function.
+    Register user endpoint function.
     """
     statement = select(Users).where(Users.email == user.email.lower())
     result = db.exec(statement=statement)
@@ -126,11 +129,15 @@ async def register(
 
     db.add(new_user)
 
-    # trigger email verification
+    # Generate email verification link
     verification_token = auth_handler.generate_token(
         TokenTypeModel.EMAIL_VERIFICATION_TOKEN, {"email": user.email}
     )
-    link = f"localhost:8000/verify/{verification_token}"
+    base_url = (
+        "http://localhost:8000" if OnepassEnvs.get("ENV") == "development" else ""
+    )
+    link = f"{base_url}/auth/verify/{verification_token}"
+
     email_data = EmailModel(
         subject=EmailTypes.REGISTRATION.subject,
         email_to=[user.email],
@@ -138,22 +145,13 @@ async def register(
         template_name=EmailTypes.REGISTRATION.template,
     )
 
-    try:
-        # TODO: Call the emailbackground endpoint here.
-        await send_email_with_template(email_data)
-        db.commit()
-        return JSONResponse(
-            status_code=status.HTTP_201_CREATED,
-            content={"message": "A link has been sent to your mail for verification."},
-        )
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Unable to complete registration at this time. Please try again later.",
-        ) from e
-    finally:
-        db.close()
+    print("Sending email with template.")
+    send_mail_in_background(background_tasks, email_data)
+    db.commit()
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={"message": "A link has been sent to your mail for verification."},
+    )
 
 
 @router.post("/forgot_pwd", status_code=status.HTTP_200_OK)
@@ -211,12 +209,32 @@ async def acct_verification(
     token: str,
     db: Session = Depends(get_db),
 ):
-    pass
+    email = auth_handler.decode_token(
+        token, TokenTypeModel.EMAIL_VERIFICATION_TOKEN, credential_exception=None
+    )
+    statement = select(Users).where(Users.email == email.lower())
+    result = db.exec(statement=statement).one_or_none()
 
+    if result:
+        if result.is_verified:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={"message": "Email already verified"},
+            )
+        else:
+            result.is_verified = True
+            db.add(result)
+            db.commit()
+            db.refresh(result)
+            print(result)
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={"message": "Email verified!"},
+            )
 
-@router.get("/verify/{link}")
-async def read_item(link: str):
-    return {"message": f"Verifying link: {link}"}
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, content={"message": "Invalid token!"}
+    )
 
 
 @router.get("/resend_verify")
