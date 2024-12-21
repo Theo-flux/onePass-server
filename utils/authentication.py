@@ -22,12 +22,14 @@ class Authentication:
     EMAIL_VERIFICATION_TOKEN_SECRET_KEY = OnepassEnvs.get(
         "EMAIL_VERIFICATION_TOKEN_SECRET_KEY"
     )
+    PASSWORD_RESET_TOKEN_SECRET_KEY = OnepassEnvs.get("PASSWORD_RESET_TOKEN_SECRET_KEY")
 
     ALGORITHM = OnepassEnvs.get("ALGORITHM")
 
     ACCESS_TOKEN_EXP_MINUTES = OnepassEnvs.get("ACCESS_TOKEN_EXP_MINUTES")
     REFRESH_TOKEN_EXP_MINUTES = OnepassEnvs.get("REFRESH_TOKEN_EXP_MINUTES")
     EMAIL_VERIFICATION_EXP_MINUTES = OnepassEnvs.get("EMAIL_VERIFICATION_EXP_MINUTES")
+    PASSWORD_RESET_EXP_MINUTES = OnepassEnvs.get("PASSWORD_RESET_EXP_MINUTES")
 
     pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     auth_scheme = HTTPBearer()
@@ -44,6 +46,8 @@ class Authentication:
             minutes = self.REFRESH_TOKEN_EXP_MINUTES
         elif token_type == TokenTypeModel.EMAIL_VERIFICATION_TOKEN:
             minutes = self.EMAIL_VERIFICATION_EXP_MINUTES
+        elif token_type == TokenTypeModel.PASSWORD_RESET_TOKEN:
+            minutes = self.PASSWORD_RESET_EXP_MINUTES
 
         payload.update(
             {"exp": curr_date + timedelta(minutes=minutes), "iat": curr_date}
@@ -56,6 +60,10 @@ class Authentication:
         elif token_type == TokenTypeModel.EMAIL_VERIFICATION_TOKEN:
             token = jwt.encode(
                 payload, self.EMAIL_VERIFICATION_TOKEN_SECRET_KEY, self.ALGORITHM
+            )
+        elif token_type == TokenTypeModel.PASSWORD_RESET_TOKEN:
+            token = jwt.encode(
+                payload, self.PASSWORD_RESET_TOKEN_SECRET_KEY, self.ALGORITHM
             )
 
         return token
@@ -93,6 +101,8 @@ class Authentication:
                 key = self.REFRESH_TOKEN_SECRET_KEY
             elif token_type == TokenTypeModel.EMAIL_VERIFICATION_TOKEN:
                 key = self.EMAIL_VERIFICATION_TOKEN_SECRET_KEY
+            elif token_type == TokenTypeModel.PASSWORD_RESET_TOKEN:
+                key = self.PASSWORD_RESET_TOKEN_SECRET_KEY
 
             payload = jwt.decode(token, key=key, algorithms=[self.ALGORITHM])
             return payload["email"]

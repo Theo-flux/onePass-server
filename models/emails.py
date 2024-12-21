@@ -10,6 +10,7 @@ class EmailType:
 
 class EmailTypes:
     REGISTRATION = EmailType("Welcome to onepass", "register.html")
+    PASSWORD_RESET = EmailType("Password Reset", "password_reset.html")
 
 
 class EmailModel(BaseModel):
@@ -17,4 +18,3 @@ class EmailModel(BaseModel):
     template_body: Dict[str, Any]
     subject: str
     template_name: str
-    # content: Dict[str, str]

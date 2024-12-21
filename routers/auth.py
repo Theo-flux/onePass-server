@@ -155,7 +155,11 @@ def register(
 
 
 @router.post("/forgot_pwd", status_code=status.HTTP_200_OK)
-async def forgot_pwd(f_pwd: ForgotPwdModel = Body(...), db: Session = Depends(get_db)):
+async def forgot_pwd(
+    background_tasks: BackgroundTasks,
+    f_pwd: ForgotPwdModel = Body(...),
+    db: Session = Depends(get_db),
+):
     """
     forgot password endpoint function
     """
@@ -164,9 +168,26 @@ async def forgot_pwd(f_pwd: ForgotPwdModel = Body(...), db: Session = Depends(ge
     result = db.exec(statement=statement).one_or_none()
 
     if result:
+        verification_token = auth_handler.generate_token(
+            TokenTypeModel.EMAIL_VERIFICATION_TOKEN, {"email": result.email.lower()}
+        )
+        base_url = (
+            "http://localhost:8000" if OnepassEnvs.get("ENV") == "development" else ""
+        )
+        link = f"{base_url}/auth/reset_pwd/{verification_token}"
+
+        email_data = EmailModel(
+            subject=EmailTypes.PASSWORD_RESET.subject,
+            email_to=[result.email],
+            template_body={"name": result.name, "link": link},
+            template_name=EmailTypes.PASSWORD_RESET.template,
+        )
+
+        send_mail_in_background(background_tasks, email_data)
+        db.commit()
         return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": "a link has been sent to your mail."},
+            status_code=status.HTTP_201_CREATED,
+            content={"message": "A link has been sent to your mail for verification."},
         )
 
     raise HTTPException(
@@ -239,6 +260,7 @@ async def acct_verification(
 
 @router.get("/resend_verify")
 async def resend_verify(
+    background_tasks: BackgroundTasks,
     email: str = Query(description="email to resend verification."),
     db: Session = Depends(get_db),
 ):
@@ -252,8 +274,33 @@ async def resend_verify(
                 content={"message": "Email already verified"},
             )
         else:
-            # resend the link to their mail.
-            pass
+            # Generate email verification link
+            verification_token = auth_handler.generate_token(
+                TokenTypeModel.EMAIL_VERIFICATION_TOKEN, {"email": result.email.lower()}
+            )
+            base_url = (
+                "http://localhost:8000"
+                if OnepassEnvs.get("ENV") == "development"
+                else ""
+            )
+            link = f"{base_url}/auth/verify/{verification_token}"
+
+            email_data = EmailModel(
+                subject=EmailTypes.REGISTRATION.subject,
+                email_to=[result.email],
+                template_body={"name": result.name, "link": link},
+                template_name=EmailTypes.REGISTRATION.template,
+            )
+
+            print("Sending email with template.")
+            send_mail_in_background(background_tasks, email_data)
+            db.commit()
+            return JSONResponse(
+                status_code=status.HTTP_201_CREATED,
+                content={
+                    "message": "A link has been sent to your mail for verification."
+                },
+            )
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
