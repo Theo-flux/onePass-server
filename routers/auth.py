@@ -62,7 +62,7 @@ def get_tokens(email: str) -> TokenModel:
 @router.get("/me")
 async def me(user: UserResponseModel = Depends(auth_handler.get_me)):
     """
-    user me endpoint function
+    user endpoint function
     """
     return user
 
@@ -168,13 +168,13 @@ async def forgot_pwd(
     result = db.exec(statement=statement).one_or_none()
 
     if result:
-        verification_token = auth_handler.generate_token(
-            TokenTypeModel.EMAIL_VERIFICATION_TOKEN, {"email": result.email.lower()}
+        reset_token = auth_handler.generate_token(
+            TokenTypeModel.PASSWORD_RESET_TOKEN, {"email": result.email.lower()}
         )
         base_url = (
             "http://localhost:8000" if OnepassEnvs.get("ENV") == "development" else ""
         )
-        link = f"{base_url}/auth/reset_pwd/{verification_token}"
+        link = f"{base_url}/auth/reset_pwd/{reset_token}"
 
         email_data = EmailModel(
             subject=EmailTypes.PASSWORD_RESET.subject,
@@ -196,12 +196,37 @@ async def forgot_pwd(
     )
 
 
-@router.post("/reset_pwd/{reset_token}")
-async def reset_pwd(new_pwd: ResetPwdModel = Body(...), db: Session = Depends(get_db)):
+@router.post("/reset_pwd/{token}")
+async def reset_pwd(
+    token: str, new_pwd: ResetPwdModel = Body(...), db: Session = Depends(get_db)
+):
     """
     reset password endpoint function.
     """
-    pass
+    email = auth_handler.decode_token(
+        token, TokenTypeModel.PASSWORD_RESET_TOKEN, credential_exception=None
+    )
+
+    statement = select(Users).where(Users.email == email.lower())
+    result = db.exec(statement=statement).one_or_none()
+
+    if result:
+        secret_pwd = auth_handler.get_pwd_hash(new_pwd.password)
+        curr_date = datetime.now()
+        result.password = secret_pwd
+        result.updated_at = curr_date
+        db.add(result)
+        db.commit()
+        db.refresh(result)
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Password successfully changed!"},
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, content={"message": "Invalid token!"}
+    )
 
 
 @router.get(
@@ -247,7 +272,7 @@ async def acct_verification(
             db.add(result)
             db.commit()
             db.refresh(result)
-            print(result)
+
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content={"message": "Email verified!"},

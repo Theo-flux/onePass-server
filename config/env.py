@@ -19,6 +19,9 @@ OnepassEnvs = {
     "EMAIL_VERIFICATION_TOKEN_SECRET_KEY": environ.get(
         "EMAIL_VERIFICATION_TOKEN_SECRET_KEY", ""
     ),
+    "PASSWORD_RESET_TOKEN_SECRET_KEY": environ.get(
+        "PASSWORD_RESET_TOKEN_SECRET_KEY", ""
+    ),
     "ALGORITHM": environ.get("ALGORITHM", "HS256"),
     "ACCESS_TOKEN_EXP_MINUTES": int(
         environ.get("ACCESS_TOKEN_EXP_MINUTES"),
@@ -28,6 +31,9 @@ OnepassEnvs = {
     ),
     "EMAIL_VERIFICATION_EXP_MINUTES": int(
         environ.get("EMAIL_VERIFICATION_EXP_MINUTES"),
+    ),
+    "PASSWORD_RESET_EXP_MINUTES": int(
+        environ.get("PASSWORD_RESET_EXP_MINUTES"),
     ),
     # Email Envs
     "EMAIL_USERNAME": environ.get("EMAIL_USERNAME"),

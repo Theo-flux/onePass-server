@@ -171,5 +171,4 @@ class Authentication:
         )
         statement = select(Users).where(Users.email == user_email)
         result = db.exec(statement=statement).one_or_none()
-
-        return result
+        return UserResponseModel(**result.__dict__)
