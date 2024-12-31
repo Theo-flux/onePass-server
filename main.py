@@ -6,6 +6,8 @@ from routers import auth
 from utils.db import engine, SQLModel
 from routers.emails import templates
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 SQLModel.metadata.create_all(engine)
 app = FastAPI(
@@ -14,7 +16,16 @@ app = FastAPI(
     version="0.0.1",
 )
 
+origins = ["http://localhost:5173"]
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Add global context processor

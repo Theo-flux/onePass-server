@@ -27,6 +27,7 @@ from utils.authentication import Authentication
 from utils.mail import send_mail_in_background
 from schemas import Users
 from config.env import OnepassEnvs
+from constants import base_url
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 auth_handler = Authentication()
@@ -53,13 +54,12 @@ def get_tokens(email: str) -> TokenModel:
     content: TokenModel = {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer",
     }
 
     return content
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserResponseModel)
 async def me(user: UserResponseModel = Depends(auth_handler.get_me)):
     """
     user endpoint function
@@ -99,7 +99,7 @@ async def login(user_cred: LoginModel, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=str)
 def register(
     background_tasks: BackgroundTasks,
     user: RegisterModel = Body(...),
@@ -132,9 +132,6 @@ def register(
     # Generate email verification link
     verification_token = auth_handler.generate_token(
         TokenTypeModel.EMAIL_VERIFICATION_TOKEN, {"email": user.email}
-    )
-    base_url = (
-        "http://localhost:8000" if OnepassEnvs.get("ENV") == "development" else ""
     )
     link = f"{base_url}/auth/verify/{verification_token}"
 
@@ -196,7 +193,7 @@ async def forgot_pwd(
     )
 
 
-@router.post("/reset_pwd/{token}")
+@router.patch("/reset_pwd/{token}")
 async def reset_pwd(
     token: str, new_pwd: ResetPwdModel = Body(...), db: Session = Depends(get_db)
 ):
@@ -302,11 +299,6 @@ async def resend_verify(
             # Generate email verification link
             verification_token = auth_handler.generate_token(
                 TokenTypeModel.EMAIL_VERIFICATION_TOKEN, {"email": result.email.lower()}
-            )
-            base_url = (
-                "http://localhost:8000"
-                if OnepassEnvs.get("ENV") == "development"
-                else ""
             )
             link = f"{base_url}/auth/verify/{verification_token}"
 

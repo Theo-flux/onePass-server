@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, field_validator
 from datetime import datetime
 from email_validator import validate_email, EmailNotValidError, EmailSyntaxError
 
@@ -66,7 +66,6 @@ class UserResponseModel(BaseModel):
 class TokenModel(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str
 
 
 class TokenTypeModel(str, Enum):
