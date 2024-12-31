@@ -7,7 +7,7 @@ from utils.db import engine, SQLModel
 from routers.emails import templates
 
 from fastapi.middleware.cors import CORSMiddleware
-
+from constants import origins
 
 SQLModel.metadata.create_all(engine)
 app = FastAPI(
@@ -16,7 +16,6 @@ app = FastAPI(
     version="0.0.1",
 )
 
-origins = ["http://localhost:5173"]
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.add_middleware(
