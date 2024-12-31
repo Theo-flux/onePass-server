@@ -26,7 +26,6 @@ from utils.authentication import Authentication
 
 from utils.mail import send_mail_in_background
 from schemas import Users
-from config.env import OnepassEnvs
 from constants import base_url
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -167,9 +166,6 @@ async def forgot_pwd(
     if result:
         reset_token = auth_handler.generate_token(
             TokenTypeModel.PASSWORD_RESET_TOKEN, {"email": result.email.lower()}
-        )
-        base_url = (
-            "http://localhost:8000" if OnepassEnvs.get("ENV") == "development" else ""
         )
         link = f"{base_url}/auth/reset_pwd/{reset_token}"
 
